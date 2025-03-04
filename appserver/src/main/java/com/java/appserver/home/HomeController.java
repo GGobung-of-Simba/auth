@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestClient;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.Map;
 
 @Controller
@@ -24,13 +28,27 @@ public class HomeController {
     }
 
     @PostMapping("/signIn")
-    public String signIn(@ModelAttribute HomeReqDTO homeReqDTO) {
+    public String signIn(@ModelAttribute HomeReqDTO homeReqDTO, HttpServletResponse res) {
+
+        Map<String, String> resultMap = getToken(homeReqDTO);
 
         System.out.println(homeReqDTO);
         System.out.println(getToken(homeReqDTO));
-        Map<String, String> resultMap = getToken(homeReqDTO);
         System.out.println(resultMap);
         System.out.println(resultMap.get("access_token"));
+
+        Cookie jwtCoo = new Cookie("jwtCookie", resultMap.get("access_token"));
+        // HttpOnly 설정: 클라이언트 측 JavaScript에서 쿠키를 접근할 수 없도록 보호 (XSS 공격 방지)
+        jwtCoo.setHttpOnly(true);
+        
+        // Path 설정: "/" 경로 이하의 모든 요청에서 해당 쿠키를 포함하도록 설정
+        jwtCoo.setPath("/");
+        
+        // MaxAge 설정: 쿠키의 유효기간을 300초
+        jwtCoo.setMaxAge(300);
+        
+        // 생성한 쿠키를 HTTP 응답에 추가 (클라이언트에 쿠키가 전달됨)
+        res.addCookie(jwtCoo);
 
         return "redirect:/?ok";
     }
